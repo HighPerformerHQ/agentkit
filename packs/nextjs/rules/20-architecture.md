@@ -19,14 +19,14 @@ no separate API service.
 | End-to-end tests | `tests/e2e/` |
 
 - Route handlers and server actions stay thin: parse input, call a service,
-  shape the response. Business logic lives in `src/server/services/` as plain
-  functions taking a `db` handle, so it is testable without going through HTTP.
-- Server Components are the default. Reach for `"use client"` only when you need
-  state, effects, or browser APIs, and push it as far down the tree as you can.
-- Never read `process.env` outside `src/lib/env.ts`. Import the validated `env`
-  object instead - it fails fast at boot on a missing variable.
-- Validate every external input - request bodies, search params, form data -
-  with zod at the boundary. A type assertion is not validation.
-- Do not hand-write or edit anything in `src/components/ui/`. Add components
-  with `pnpm dlx shadcn@latest add <name>`, or `@magicui/<name>` for Magic UI,
-  and wrap them if you need different behaviour.
+  shape the response. Logic lives in `src/server/services/` as plain functions
+  taking a `db` handle, so it is testable without HTTP.
+- Server Components are the default. Add `"use client"` only for state, effects
+  or browser APIs, and push it as far down the tree as it will go.
+- Never read `process.env` outside `src/lib/env.ts` - import the validated `env`
+  object, which fails fast at boot on a missing variable.
+- Validate external input (request bodies, search params, form data) with zod at
+  the boundary. A type assertion is not validation.
+- Never hand-write or edit `src/components/ui/`. Add components with
+  `pnpm dlx shadcn@latest add <name>` (`@magicui/<name>` for Magic UI) and wrap
+  them if you need different behaviour.
