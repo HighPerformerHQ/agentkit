@@ -34,7 +34,7 @@ You do not need to tell your agent about the repo's conventions. They are in
 ## 3. Start a project
 
 ```bash
-gh repo create my-app --template <org>/nextjs-starter --private --clone
+gh repo create my-app --template HighPerformerHQ/nextjs-starter --private --clone
 cd my-app
 pnpm install
 pnpm setup:init
@@ -50,7 +50,7 @@ pnpm dev
 ## 4. Check the wiring
 
 ```bash
-npx github:mparucha/agentkit doctor
+npx github:HighPerformerHQ/agentkit doctor
 ```
 
 This reports which agent CLIs you have and whether their config files are

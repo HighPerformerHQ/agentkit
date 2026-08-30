@@ -18,7 +18,7 @@ export interface AgentkitConfig {
 }
 
 export const DEFAULT_CONFIG: AgentkitConfig = {
-  $schema: "https://raw.githubusercontent.com/mparucha/agentkit/main/schema.json",
+  $schema: "https://raw.githubusercontent.com/HighPerformerHQ/agentkit/main/schema.json",
   packs: ["core"],
   vendors: ["claude", "codex", "opencode"],
 };

@@ -30,7 +30,7 @@ formats genuinely differ — which is most of what the sync step is for.
 In any repository:
 
 ```bash
-npx github:mparucha/agentkit sync
+npx github:HighPerformerHQ/agentkit sync
 ```
 
 That writes the canonical `.agents/` tree (seeded from the `core` pack) and
@@ -82,7 +82,7 @@ want is a normal, supported thing to do — `sync` will not put it back.
 ## Keeping it honest in CI
 
 ```yaml
-- run: npx github:mparucha/agentkit check
+- run: npx github:HighPerformerHQ/agentkit check
 ```
 
 This fails the build if someone hand-edited a generated file or forgot to
