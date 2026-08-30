@@ -88,10 +88,12 @@ want is a normal, supported thing to do — `sync` will not put it back.
 This fails the build if someone hand-edited a generated file or forgot to
 commit the result of a sync.
 
-Because this repo is private, that one-liner only works where git is already
-authenticated — fine on a developer's machine, not in CI. A workflow in another
-repo needs a token with read access here; see the `agent-config` job in
-`nextjs-starter/.github/workflows/ci.yml` for a working example.
+This repo is public, so that one-liner needs no token and no secret — it works
+the same on a developer's machine and in any repository's CI.
+
+Use `npx`, not `pnpm dlx`: pnpm refuses to run a git-hosted package's build
+script unless it is allowlisted by commit SHA, which would need updating on
+every commit here.
 
 ## Adding your own content
 
