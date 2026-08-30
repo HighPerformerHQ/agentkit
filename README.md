@@ -45,6 +45,7 @@ agentkit sync --vendors claude     # only emit for some vendors
 agentkit check                     # exit 1 if generated files are stale (use in CI)
 agentkit doctor                    # which agent CLIs are installed, and is the wiring present
 agentkit add nextjs                # enable a pack, then sync
+agentkit sync --reseed             # restore pack files you deleted earlier
 ```
 
 ## How it fits together
@@ -56,16 +57,16 @@ agentkit add nextjs                # enable a pack, then sync
   skills/<name>/SKILL.md     Agent Skills format; read natively by Codex + OpenCode
   commands/<name>.md         slash commands / prompts
   mcp.json                   MCP servers, in a neutral shape
+  agentkit-manifest.json     generated; tracks which files came from a pack
         |
         |  agentkit sync
         v
 AGENTS.md  CLAUDE.md  .mcp.json  .claude/  .codex/  opencode.json    generated
 ```
 
-**Two directions, one rule.** `.agents/` is yours — `sync` seeds pack content
-into it but never overwrites a file that already exists, so hand edits and
-team-specific rules are safe. Everything *outside* `.agents/` is generated and
-gets overwritten on every sync; each such file carries a `DO NOT EDIT` header.
+**Two directions, one rule.** `.agents/` is yours. Everything *outside* it is
+generated and gets overwritten on every sync; each such file carries a
+`DO NOT EDIT` header.
 
 To change what an agent knows, edit `.agents/` and re-run `sync`.
 
@@ -76,8 +77,26 @@ To change what an agent knows, edit `.agents/` and re-run `sync`.
 | `core` | Workflow, definition of done, git/PR conventions, secrets handling. Skills: `review-changes`, `debug-failing-test`. Commands: `/verify`, `/db-reset`. |
 | `nextjs` | Next.js architecture rules. Skills: `add-ui-component` (shadcn + Magic UI registries), `write-migration` (Drizzle). |
 
-Packs are seeded once, then owned by your repo. Deleting a rule file you don't
-want is a normal, supported thing to do — `sync` will not put it back.
+### How pack files are kept up to date
+
+`sync` records what it wrote in `.agents/agentkit-manifest.json`. That baseline
+is what lets a pack improvement reach your repo without ever trampling your own
+work, because agentkit will only overwrite a file whose current bytes it wrote
+itself:
+
+| Your copy | What `sync` does |
+|---|---|
+| Untouched since it was seeded | Updated to the new pack version |
+| Edited by you | Left alone. If the pack also moved, you get a `conflict` notice to merge by hand |
+| Deleted by you | Stays deleted. `sync --reseed` brings it back |
+| No longer shipped by any pack | Left alone, reported as `orphaned` |
+
+So a pack file is yours the moment you touch it — and it stops receiving
+updates at that moment too. **Put project-specific guidance in its own file**
+(`.agents/rules/70-my-thing.md`) rather than editing a pack rule, or you trade
+away every future improvement to it for one local edit.
+
+Commit the manifest. It is what every teammate's sync reads.
 
 ## Keeping it honest in CI
 
@@ -86,7 +105,12 @@ want is a normal, supported thing to do — `sync` will not put it back.
 ```
 
 This fails the build if someone hand-edited a generated file or forgot to
-commit the result of a sync.
+commit the result of a sync. It is read-only — it never writes to the tree it
+is checking.
+
+Pending pack updates are *reported* here, not failed on. Packs install from
+`main`, so failing would break CI in every repo the moment this one advances;
+an available update is a queue of work, not a broken build.
 
 This repo is public, so that one-liner needs no token and no secret — it works
 the same on a developer's machine and in any repository's CI.
@@ -104,11 +128,20 @@ Drop a file into the canonical tree and re-run `sync`:
 - **A skill** — `.agents/skills/my-skill/SKILL.md` with `name:` and
   `description:` frontmatter. The description is what an agent uses to decide
   whether to load it, so make it say *when to use this*, not just what it is.
+  Skills need no pack and no registration: every skill in `.agents/skills/` is
+  indexed into `AGENTS.md`, mirrored to `.claude/skills/`, and read natively by
+  Codex and OpenCode. A skill that matters to one project belongs in that
+  project's repo.
 - **A command** — `.agents/commands/my-command.md` with `description:`
   frontmatter.
 - **An MCP server** — add an entry to `.agents/mcp.json`.
 
-To promote something to all repos, move it into `packs/core/` here instead.
+To promote something to all repos, move it into `packs/core/` here instead —
+every repo picks it up on its next `sync`.
+
+Do **not** add project-specific content by editing a pack-seeded file. That
+marks the file as yours and it stops receiving pack updates; a new file costs
+nothing and keeps both.
 
 ## Development
 

@@ -11,12 +11,14 @@ const USAGE = `agentkit - vendor-agnostic agent configuration
 
 Usage
   agentkit sync [--vendors <list>] [--root <dir>]   Write .agents/ and all vendor adapters
+  agentkit sync --reseed                            Restore pack files you deleted earlier
   agentkit check [--root <dir>]                     Fail if generated files are stale (CI)
   agentkit doctor [--root <dir>]                    Report installed agent CLIs and wiring
   agentkit add <pack> [--root <dir>]                Enable a pack, then sync
 
 Options
   --vendors   Comma-separated subset of: ${ALL_VENDORS.join(", ")}
+  --reseed    Re-add pack files previously deleted on purpose
   --root      Target repository (default: cwd)
   --help      Show this message
 `;
@@ -39,7 +41,7 @@ function parseArgs(argv: string[]): Args {
       if (key === undefined) continue;
       if (inline !== undefined) {
         flags.set(key, inline);
-      } else if (key === "help") {
+      } else if (key === "help" || key === "reseed") {
         flags.set(key, "true");
       } else {
         // Consume the next token as this flag's value.
@@ -76,7 +78,11 @@ async function main(): Promise<number> {
 
   switch (args.command) {
     case "sync":
-      return sync({ root, vendors: parseVendors(args.flags.get("vendors")) });
+      return sync({
+        root,
+        vendors: parseVendors(args.flags.get("vendors")),
+        reseed: args.flags.has("reseed"),
+      });
     case "check":
       return check(root);
     case "doctor":

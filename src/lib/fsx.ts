@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -46,36 +47,38 @@ export async function readTextOrNull(p: string): Promise<string | null> {
   }
 }
 
+/** Stable content hash used as the manifest baseline. */
+export function sha256(data: Buffer | string): string {
+  return `sha256-${createHash("sha256").update(data).digest("hex")}`;
+}
+
+/** Hash a file's bytes, returning null when it is absent. */
+export async function hashFile(p: string): Promise<string | null> {
+  try {
+    return sha256(await fs.readFile(p));
+  } catch {
+    return null;
+  }
+}
+
+/** Every file under `dir`, as sorted paths relative to it. */
+export async function listFiles(dir: string, prefix = ""): Promise<string[]> {
+  if (!(await isDir(dir))) return [];
+  const out: string[] = [];
+  for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+    const relative = prefix ? path.join(prefix, entry.name) : entry.name;
+    if (entry.isDirectory()) {
+      out.push(...(await listFiles(path.join(dir, entry.name), relative)));
+    } else {
+      out.push(relative);
+    }
+  }
+  return out.sort();
+}
+
 export async function writeText(p: string, contents: string): Promise<void> {
   await fs.mkdir(path.dirname(p), { recursive: true });
   await fs.writeFile(p, contents, "utf8");
-}
-
-/**
- * Copy `src` into `dest` without clobbering. Files that already exist are left
- * alone, so hand edits inside `.agents/` survive re-running `sync`.
- * Returns the repo-relative paths actually created.
- */
-export async function copyDirIfAbsent(
-  src: string,
-  dest: string,
-  root: string,
-): Promise<string[]> {
-  const created: string[] = [];
-  if (!(await isDir(src))) return created;
-
-  for (const entry of await fs.readdir(src, { withFileTypes: true })) {
-    const from = path.join(src, entry.name);
-    const to = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      created.push(...(await copyDirIfAbsent(from, to, root)));
-    } else if (!(await exists(to))) {
-      await fs.mkdir(path.dirname(to), { recursive: true });
-      await fs.copyFile(from, to);
-      created.push(path.relative(root, to));
-    }
-  }
-  return created;
 }
 
 /** Mirror `src` onto `dest`, replacing whatever was there. Used for vendor dirs. */

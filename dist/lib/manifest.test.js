@@ -1,0 +1,83 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { resolvePackFile } from "./manifest.js";
+const PACK = "sha256-pack";
+const OLD = "sha256-old";
+const MINE = "sha256-mine";
+function state(over) {
+    return {
+        path: "rules/10-workflow.md",
+        pack: "core",
+        packHash: PACK,
+        localHash: null,
+        entry: undefined,
+        ...over,
+    };
+}
+const tracked = (hash) => ({ pack: "core", hash });
+const tombstone = () => ({ pack: "core", hash: OLD, removed: true });
+// One case per row of the resolution table in the plan.
+test("untracked and absent -> seed", () => {
+    assert.equal(resolvePackFile(state({})), "seed");
+});
+test("untracked but byte-identical to the pack -> adopt", () => {
+    assert.equal(resolvePackFile(state({ localHash: PACK })), "adopt");
+});
+test("untracked and already edited -> unmanaged, never auto-updated", () => {
+    assert.equal(resolvePackFile(state({ localHash: MINE })), "unmanaged");
+});
+test("tracked but deleted locally -> tombstone", () => {
+    assert.equal(resolvePackFile(state({ localHash: null, entry: tracked(PACK) })), "tombstone");
+});
+test("already tombstoned and still gone -> removed", () => {
+    assert.equal(resolvePackFile(state({ localHash: null, entry: tombstone() })), "removed");
+});
+test("tracked, unmodified, pack unchanged -> current", () => {
+    assert.equal(resolvePackFile(state({ localHash: PACK, entry: tracked(PACK) })), "current");
+});
+test("tracked, unmodified, pack moved -> update", () => {
+    assert.equal(resolvePackFile(state({ localHash: OLD, entry: tracked(OLD) })), "update");
+});
+test("locally edited, pack unchanged -> modified, left alone", () => {
+    assert.equal(resolvePackFile(state({ localHash: MINE, entry: tracked(PACK) })), "modified");
+});
+test("locally edited AND pack moved -> conflict", () => {
+    assert.equal(resolvePackFile(state({ localHash: MINE, entry: tracked(OLD) })), "conflict");
+});
+test("pack stopped shipping it but the file is still here -> orphaned", () => {
+    assert.equal(resolvePackFile(state({ packHash: null, localHash: PACK, entry: tracked(PACK) })), "orphaned");
+});
+test("gone from both sides -> drop the entry", () => {
+    assert.equal(resolvePackFile(state({ packHash: null, localHash: null, entry: tracked(PACK) })), "drop");
+});
+// --reseed, and the hand-restore edge case.
+test("--reseed undoes a tombstone", () => {
+    assert.equal(resolvePackFile(state({ localHash: null, entry: tombstone() }), true), "seed");
+});
+test("--reseed cannot resurrect a file no pack ships any more", () => {
+    assert.equal(resolvePackFile(state({ packHash: null, localHash: null, entry: tombstone() }), true), "drop");
+});
+test("tombstoned file restored by hand is adopted, not re-tombstoned", () => {
+    assert.equal(resolvePackFile(state({ localHash: PACK, entry: tombstone() })), "adopt");
+});
+test("tombstoned file restored by hand with edits stays the user's", () => {
+    assert.equal(resolvePackFile(state({ localHash: MINE, entry: tombstone() })), "unmanaged");
+});
+// The invariant the whole design rests on.
+test("only seed and update ever write, and never over unseen bytes", () => {
+    const localHashes = [null, PACK, OLD, MINE];
+    const entries = [undefined, tracked(PACK), tracked(OLD), tombstone()];
+    for (const localHash of localHashes) {
+        for (const entry of entries) {
+            const action = resolvePackFile(state({ localHash, entry }));
+            if (action !== "update")
+                continue;
+            // An update may only fire when the file on disk is byte-for-byte what
+            // agentkit last wrote there.
+            assert.equal(localHash, entry?.hash, `update over unseen bytes: ${localHash}`);
+        }
+    }
+});
+test("a tombstone for a file no pack ships is cleaned up, not kept forever", () => {
+    assert.equal(resolvePackFile(state({ packHash: null, localHash: null, entry: tombstone() })), "drop");
+});

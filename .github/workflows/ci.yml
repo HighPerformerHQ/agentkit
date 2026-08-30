@@ -21,6 +21,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm build
+      - run: pnpm test
 
       # dist/ is committed so `npx github:...` needs no build step at install
       # time. Fail if someone changed src without rebuilding.
@@ -41,3 +42,16 @@ jobs:
           test -f /tmp/smoke/opencode.json
           test -f /tmp/smoke/.codex/config.toml
           test -f /tmp/smoke/.claude/skills/review-changes/SKILL.md
+          test -f /tmp/smoke/.agents/agentkit-manifest.json
+
+      # A deleted pack file must stay deleted - the guarantee the manifest exists for.
+      - name: Deleting a pack file sticks
+        run: |
+          rm -rf /tmp/smoke/.agents/skills/review-changes
+          node "$GITHUB_WORKSPACE/dist/cli.js" sync --root /tmp/smoke
+          if [ -e /tmp/smoke/.agents/skills/review-changes ]; then
+            echo "::error::sync re-seeded a file the user deleted."
+            exit 1
+          fi
+          node "$GITHUB_WORKSPACE/dist/cli.js" sync --reseed --root /tmp/smoke
+          test -f /tmp/smoke/.agents/skills/review-changes/SKILL.md

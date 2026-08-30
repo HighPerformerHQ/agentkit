@@ -72,9 +72,19 @@ pnpm db:migrate   # apply migrations
 Rules, skills, and commands live in `.agents/` in each repo, and are seeded from
 packs in the `agentkit` repo.
 
-- **Just this project?** Edit `.agents/` directly, run `npx agentkit sync`,
-  commit both the canonical file and the regenerated output.
+- **Just this project?** Add a *new* file under `.agents/` — a skill at
+  `.agents/skills/<name>/SKILL.md`, a rule at `.agents/rules/70-<name>.md` —
+  then run `npx agentkit sync` and commit both it and the regenerated output.
+  Project-local skills need no pack and no registration; all three agents pick
+  them up.
 - **Every project?** Open a PR against `agentkit` adding it to `packs/core/`.
+  Every repo receives it on its next `sync`.
+
+**Do not edit a pack-seeded file to add project content.** agentkit tracks what
+it wrote in `.agents/agentkit-manifest.json` and updates only the pack files you
+have not touched. Editing one keeps your change but forfeits every future
+improvement to that file; a separate file keeps both. If a pack file you edited
+changes upstream, `sync` reports a `conflict` and leaves your version alone.
 
 Never hand-edit `AGENTS.md`, `CLAUDE.md`, `opencode.json`, `.codex/`, `.mcp.json`,
 or `.claude/` — they are generated, carry a `DO NOT EDIT` header, and CI will
