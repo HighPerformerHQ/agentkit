@@ -1,0 +1,31 @@
+{
+  "name": "agentkit",
+  "version": "0.1.0",
+  "description": "Vendor-agnostic agent configuration toolkit. One canonical .agents/ tree, generated adapters for Claude Code, OpenAI Codex and OpenCode.",
+  "type": "module",
+  "bin": {
+    "agentkit": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "packs"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test dist/**/*.test.js",
+    "prepare": "pnpm run build"
+  },
+  "dependencies": {
+    "smol-toml": "^1.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "typescript": "^5.9.3"
+  }
+}

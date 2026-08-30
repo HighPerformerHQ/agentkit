@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+
+      # Prove the CLI still produces a working setup end to end.
+      - name: Smoke test sync + check
+        run: |
+          mkdir -p /tmp/smoke && cd /tmp/smoke && git init -q -b main
+          node "$GITHUB_WORKSPACE/dist/cli.js" sync --root /tmp/smoke
+          node "$GITHUB_WORKSPACE/dist/cli.js" check --root /tmp/smoke
+          test -f /tmp/smoke/AGENTS.md
+          test -f /tmp/smoke/opencode.json
+          test -f /tmp/smoke/.codex/config.toml
+          test -f /tmp/smoke/.claude/skills/review-changes/SKILL.md
