@@ -6,12 +6,20 @@ import { GENERATED_NOTICE } from "./fsx.js";
  * OpenCode read natively, and that CLAUDE.md imports.
  */
 export function renderAgentsMd(canonical: Canonical): string {
-  const { config, rules, skills, commands } = canonical;
+  const { config, rules, skills, commands, foreignBlocks } = canonical;
   const name = config.project?.name ?? "This repository";
   const out: string[] = [];
 
   out.push(`<!-- ${GENERATED_NOTICE} -->`);
   out.push("");
+
+  // Kept verbatim and first, which is where the tools that write them expect
+  // them to be. agentkit never edits their contents.
+  for (const block of foreignBlocks) {
+    out.push(block);
+    out.push("");
+  }
+
   out.push(`# ${name}`);
   out.push("");
   if (config.project?.description) {

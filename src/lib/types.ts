@@ -74,6 +74,12 @@ export interface Canonical {
   commands: Command[];
   rules: Rule[];
   mcp: McpFile;
+  /**
+   * `<!-- BEGIN:x -->...<!-- END:x -->` blocks found in an existing AGENTS.md
+   * that agentkit did not write. Other tools inject these (Next.js re-adds one
+   * on every `next dev`), so they are carried through rather than clobbered.
+   */
+  foreignBlocks: string[];
 }
 
 /** A file an adapter wants written. Compared by content in `check`. */

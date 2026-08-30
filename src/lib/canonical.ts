@@ -79,6 +79,9 @@ export async function loadCanonical(root: string): Promise<Canonical> {
     commands: await readCommands(agentsDir),
     rules: await readRules(agentsDir),
     mcp: JSON.parse(await readText(mcpPath)) as McpFile,
+    foreignBlocks: extractForeignBlocks(
+      await readTextOrNull(path.join(root, "AGENTS.md")),
+    ),
   };
 }
 
@@ -170,4 +173,16 @@ async function readRules(agentsDir: string): Promise<Rule[]> {
     });
   }
   return rules.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+}
+
+/**
+ * Pull `<!-- BEGIN:name -->...<!-- END:name -->` blocks out of an existing
+ * AGENTS.md so a regenerated file keeps them. Next.js writes one of these and
+ * re-adds it on every `next dev`; without this, sync and Next would overwrite
+ * each other forever.
+ */
+export function extractForeignBlocks(existing: string | null): string[] {
+  if (existing === null) return [];
+  const pattern = /<!--\s*BEGIN:([\w-]+)\s*-->[\s\S]*?<!--\s*END:\1\s*-->/g;
+  return [...existing.matchAll(pattern)].map((match) => match[0]);
 }
