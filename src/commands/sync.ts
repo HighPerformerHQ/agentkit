@@ -53,7 +53,7 @@ export async function sync(options: SyncOptions): Promise<number> {
     console.log(`  packs   : ${canonical.config.packs.join(", ")}`);
     console.log(
       `  content : ${canonical.skills.length} skills, ` +
-        `${canonical.commands.length} commands, ${canonical.rules.length} rules, ` +
+        `${canonical.commands.length} commands, ` +
         `${Object.keys(canonical.mcp.servers).length} MCP servers`,
     );
 

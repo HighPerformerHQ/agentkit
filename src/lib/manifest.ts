@@ -92,7 +92,7 @@ export async function writeManifest(
  */
 export async function listPackFiles(packDir: string): Promise<string[]> {
   const out: string[] = [];
-  for (const kind of ["skills", "commands", "rules"]) {
+  for (const kind of ["skills", "commands"]) {
     for (const relative of await listFiles(path.join(packDir, kind))) {
       out.push(path.join(kind, relative));
     }

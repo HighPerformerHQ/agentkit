@@ -9,7 +9,7 @@ import type { AdapterOutput, Canonical } from "../lib/types.js";
  * the environment block `environment`, not `env`.
  */
 export function opencodeAdapter(canonical: Canonical): AdapterOutput {
-  const { mcp, commands, rules } = canonical;
+  const { mcp, commands } = canonical;
 
   const mcpBlock: Record<string, unknown> = {};
   for (const [name, server] of Object.entries(mcp.servers)) {
@@ -30,12 +30,9 @@ export function opencodeAdapter(canonical: Canonical): AdapterOutput {
     };
   }
 
-  // AGENTS.md already inlines every rule; the rule files are listed too so that
-  // editing one is picked up even before the next `agentkit sync`.
-  const instructions = [
-    "AGENTS.md",
-    ...(rules.length > 0 ? [".agents/rules/*.md"] : []),
-  ];
+  // AGENTS.md is the project's own hand-written file. Listed explicitly rather
+  // than relying on native discovery, so the config says what it loads.
+  const instructions = ["AGENTS.md"];
 
   const config = {
     $schema: "https://opencode.ai/config.json",

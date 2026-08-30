@@ -69,28 +69,23 @@ pnpm db:migrate   # apply migrations
 
 ## Changing the shared setup
 
-Rules, skills, and commands live in `.agents/` in each repo, and are seeded from
-packs in the `agentkit` repo.
+Skills and commands live in `.agents/` in each repo and are seeded from packs in
+the `agentkit` repo. Instructions for every run live in `AGENTS.md`, which is
+yours alone.
 
-- **Just this project?** Add a *new* file under `.agents/` — a skill at
-  `.agents/skills/<name>/SKILL.md`, a rule at `.agents/rules/70-<name>.md` —
-  then run `npx agentkit sync` and commit both it and the regenerated output.
-  Project-local skills need no pack and no registration; all three agents pick
-  them up.
-- **Every project?** Open a PR against `agentkit` adding it to `packs/core/`.
-  Every repo receives it on its next `sync`.
+- **Something an agent should know on every run?** Edit `AGENTS.md`. No sync, no
+  frontmatter — Codex and OpenCode read it natively and `CLAUDE.md` imports it.
+- **A skill for just this project?** `.agents/skills/<name>/SKILL.md`, then
+  `npx agentkit sync`. No pack and no registration needed.
+- **A skill or command for every project?** Open a PR against `agentkit` adding
+  it to `packs/core/`. Every repo receives it on its next `sync`.
 
-The one exception is `.agents/rules/05-project.md`. It arrives as a set of
-placeholders describing your project and is meant to be filled in — it becomes
-locally-owned the moment you do, which is the intent. It is the first thing every
-agent reads, so it is worth ten minutes.
-
-**Otherwise, do not edit a pack-seeded file to add project content.** agentkit tracks what
+**Do not edit a pack-seeded file to add project content.** agentkit tracks what
 it wrote in `.agents/agentkit-manifest.json` and updates only the pack files you
 have not touched. Editing one keeps your change but forfeits every future
-improvement to that file; a separate file keeps both. If a pack file you edited
-changes upstream, `sync` reports a `conflict` and leaves your version alone.
+improvement to that file. If a pack file you edited changes upstream, `sync`
+reports a `conflict` and leaves your version alone.
 
-Never hand-edit `AGENTS.md`, `CLAUDE.md`, `opencode.json`, `.codex/`, `.mcp.json`,
-or `.claude/` — they are generated, carry a `DO NOT EDIT` header, and CI will
-fail via `agentkit check`.
+Never hand-edit `CLAUDE.md`, `opencode.json`, `.codex/`, `.mcp.json`, or
+`.claude/` — they are generated, carry a `DO NOT EDIT` header, and CI will fail
+via `agentkit check`. `AGENTS.md` is the exception: agentkit never writes it.

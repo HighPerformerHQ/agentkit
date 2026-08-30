@@ -3,7 +3,12 @@
 Vendor-agnostic agent configuration for the team. One canonical `.agents/` tree,
 generated adapters for **Claude Code**, **OpenAI Codex**, and **OpenCode**.
 
-Write a rule or a skill once. Every developer gets it, whichever agent they use.
+Write a skill or a command once. Every developer gets it, whichever agent they
+use.
+
+**`AGENTS.md` is not agentkit's.** It is the project's own hand-written file —
+stack, business context, and what an agent needs on every run. agentkit manages
+the vendor plumbing around it: skills, commands, and MCP servers.
 
 ## Why this exists
 
@@ -25,6 +30,9 @@ generate than you would expect:
 Only Claude Code needs a mirror, and MCP config is the one place where all three
 formats genuinely differ — which is most of what the sync step is for.
 
+Note the first row: **`AGENTS.md` is listed as an input, not an output.** You
+write it; agentkit only points each vendor at it.
+
 ## Quick start
 
 In any repository:
@@ -36,6 +44,8 @@ npx github:HighPerformerHQ/agentkit sync
 That writes the canonical `.agents/` tree (seeded from the `core` pack) and
 every enabled vendor's adapter files. Commit all of it — a teammate who never
 runs `agentkit` still gets a working setup.
+
+It does **not** create or touch `AGENTS.md`. Write that yourself.
 
 ## Commands
 
@@ -53,7 +63,6 @@ agentkit sync --reseed             # restore pack files you deleted earlier
 ```
 .agents/                     canonical, hand-edited, reviewed in PRs
   agentkit.config.json       which packs and vendors are enabled
-  rules/*.md                 assembled in `order` into AGENTS.md
   skills/<name>/SKILL.md     Agent Skills format; read natively by Codex + OpenCode
   commands/<name>.md         slash commands / prompts
   mcp.json                   MCP servers, in a neutral shape
@@ -61,32 +70,29 @@ agentkit sync --reseed             # restore pack files you deleted earlier
         |
         |  agentkit sync
         v
-AGENTS.md  CLAUDE.md  .mcp.json  .claude/  .codex/  opencode.json    generated
+CLAUDE.md  .mcp.json  .claude/  .codex/  opencode.json          generated
+
+AGENTS.md                                                       yours, untouched
 ```
 
-**Two directions, one rule.** `.agents/` is yours. Everything *outside* it is
-generated and gets overwritten on every sync; each such file carries a
-`DO NOT EDIT` header.
+**Two directions, one rule.** `.agents/` is yours, and so is `AGENTS.md`.
+Everything else in that second block is generated and gets overwritten on every
+sync; each such file carries a `DO NOT EDIT` header.
 
-To change what an agent knows, edit `.agents/` and re-run `sync`.
+To change what an agent knows on every run, edit `AGENTS.md` — no sync needed,
+all three vendors read it directly. To change what skills or MCP servers it has,
+edit `.agents/` and re-run `sync`.
 
 ## Packs
 
 | Pack | Contents |
 |---|---|
-| `core` | A project-description placeholder, definition of done, workflow, git/PR conventions, secrets handling. Skills: `review-changes`, `debug-failing-test`. Commands: `/verify`, `/db-reset`. |
-| `nextjs` | Architecture and where-code-goes rules. Skills: `add-ui-component` (shadcn + Magic UI registries), `write-migration` (Drizzle). |
+| `core` | Skills: `review-changes`, `debug-failing-test`. Commands: `/verify`, `/db-reset`. |
+| `nextjs` | Skills: `add-ui-component` (shadcn + Magic UI registries), `write-migration` (Drizzle). |
 
-`core` ships **`rules/05-project.md`, which is meant to be edited.** It renders
-as the first section of `AGENTS.md` and holds nothing but placeholders — what the
-product does, the domain nouns, external systems, constraints the code does not
-show. Filling it in marks it locally-owned and `sync` stops updating it, which
-is exactly right: it is the one rule that is yours by definition.
-
-Rules are ordered by their `order:` frontmatter, lowest first. The numbering
-leaves gaps so a project can slot its own rules between the shipped ones — the
-Next.js starter puts its command table at `order: 10`, between the project
-description and the architecture section.
+Packs ship **skills, commands and MCP servers** — the things a vendor needs
+wiring for. They do not ship prose instructions: those belong in your
+`AGENTS.md`, which no tool should be rewriting.
 
 ### How pack files are kept up to date
 
@@ -103,9 +109,9 @@ itself:
 | No longer shipped by any pack | Left alone, reported as `orphaned` |
 
 So a pack file is yours the moment you touch it — and it stops receiving
-updates at that moment too. **Put project-specific guidance in its own file**
-(`.agents/rules/70-my-thing.md`) rather than editing a pack rule, or you trade
-away every future improvement to it for one local edit.
+updates at that moment too. **Put project-specific guidance in `AGENTS.md`, or
+in a skill of your own**, rather than editing a pack skill, or you trade away
+every future improvement to it for one local edit.
 
 Commit the manifest. It is what every teammate's sync reads.
 
@@ -134,8 +140,8 @@ every commit here.
 
 Drop a file into the canonical tree and re-run `sync`:
 
-- **A rule** — `.agents/rules/60-my-rule.md` with `title:` and `order:`
-  frontmatter. It gets assembled into `AGENTS.md` in order.
+- **An instruction for every run** — write it in `AGENTS.md` directly. No sync,
+  no frontmatter: all three vendors read that file.
 - **A skill** — `.agents/skills/my-skill/SKILL.md` with `name:` and
   `description:` frontmatter. The description is what an agent uses to decide
   whether to load it, so make it say *when to use this*, not just what it is.

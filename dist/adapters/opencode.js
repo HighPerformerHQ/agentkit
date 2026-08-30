@@ -7,7 +7,7 @@
  * the environment block `environment`, not `env`.
  */
 export function opencodeAdapter(canonical) {
-    const { mcp, commands, rules } = canonical;
+    const { mcp, commands } = canonical;
     const mcpBlock = {};
     for (const [name, server] of Object.entries(mcp.servers)) {
         mcpBlock[name] = {
@@ -25,12 +25,9 @@ export function opencodeAdapter(canonical) {
             ...(command.frontmatter.agent ? { agent: command.frontmatter.agent } : {}),
         };
     }
-    // AGENTS.md already inlines every rule; the rule files are listed too so that
-    // editing one is picked up even before the next `agentkit sync`.
-    const instructions = [
-        "AGENTS.md",
-        ...(rules.length > 0 ? [".agents/rules/*.md"] : []),
-    ];
+    // AGENTS.md is the project's own hand-written file. Listed explicitly rather
+    // than relying on native discovery, so the config says what it loads.
+    const instructions = ["AGENTS.md"];
     const config = {
         $schema: "https://opencode.ai/config.json",
         instructions,

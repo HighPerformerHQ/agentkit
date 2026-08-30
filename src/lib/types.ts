@@ -10,11 +10,6 @@ export interface AgentkitConfig {
   packs: string[];
   /** Which vendors to emit adapter files for. */
   vendors: Vendor[];
-  /** Shown at the top of the generated AGENTS.md. */
-  project?: {
-    name?: string;
-    description?: string;
-  };
 }
 
 export const DEFAULT_CONFIG: AgentkitConfig = {
@@ -56,15 +51,6 @@ export interface Command {
   frontmatter: Record<string, string>;
 }
 
-export interface Rule {
-  name: string;
-  path: string;
-  content: string;
-  /** Controls assembly order in AGENTS.md; lower runs first. */
-  order: number;
-  title: string;
-}
-
 /** Everything sync needs, read from the canonical `.agents/` tree. */
 export interface Canonical {
   root: string;
@@ -72,14 +58,7 @@ export interface Canonical {
   config: AgentkitConfig;
   skills: Skill[];
   commands: Command[];
-  rules: Rule[];
   mcp: McpFile;
-  /**
-   * `<!-- BEGIN:x -->...<!-- END:x -->` blocks found in an existing AGENTS.md
-   * that agentkit did not write. Other tools inject these (Next.js re-adds one
-   * on every `next dev`), so they are carried through rather than clobbered.
-   */
-  foreignBlocks: string[];
   /** What reconciling the enabled packs against the manifest decided. */
   packPlan: PackResolution[];
 }

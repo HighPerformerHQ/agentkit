@@ -38,11 +38,15 @@ jobs:
           mkdir -p /tmp/smoke && cd /tmp/smoke && git init -q -b main
           node "$GITHUB_WORKSPACE/dist/cli.js" sync --root /tmp/smoke
           node "$GITHUB_WORKSPACE/dist/cli.js" check --root /tmp/smoke
-          test -f /tmp/smoke/AGENTS.md
           test -f /tmp/smoke/opencode.json
           test -f /tmp/smoke/.codex/config.toml
           test -f /tmp/smoke/.claude/skills/review-changes/SKILL.md
           test -f /tmp/smoke/.agents/agentkit-manifest.json
+          # AGENTS.md is the project's own file - sync must never create it.
+          if [ -e /tmp/smoke/AGENTS.md ]; then
+            echo "::error::sync created AGENTS.md; it belongs to the project."
+            exit 1
+          fi
 
       # A deleted pack file must stay deleted - the guarantee the manifest exists for.
       - name: Deleting a pack file sticks

@@ -75,7 +75,7 @@ export async function writeManifest(agentsDir, manifest) {
  */
 export async function listPackFiles(packDir) {
     const out = [];
-    for (const kind of ["skills", "commands", "rules"]) {
+    for (const kind of ["skills", "commands"]) {
         for (const relative of await listFiles(path.join(packDir, kind))) {
             out.push(path.join(kind, relative));
         }

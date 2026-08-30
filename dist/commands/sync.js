@@ -38,7 +38,7 @@ export async function sync(options) {
         console.log(`  vendors : ${vendorList}`);
         console.log(`  packs   : ${canonical.config.packs.join(", ")}`);
         console.log(`  content : ${canonical.skills.length} skills, ` +
-            `${canonical.commands.length} commands, ${canonical.rules.length} rules, ` +
+            `${canonical.commands.length} commands, ` +
             `${Object.keys(canonical.mcp.servers).length} MCP servers`);
         // Only the interesting rows: an unchanged pack file is not news.
         const notable = canonical.packPlan.filter((p) => isNoteworthy(p.action));

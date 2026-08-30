@@ -9,7 +9,7 @@ const MINE = "sha256-mine";
 
 function state(over: Partial<PackFileState>): PackFileState {
   return {
-    path: "rules/10-workflow.md",
+    path: "skills/review-changes/SKILL.md",
     pack: "core",
     packHash: PACK,
     localHash: null,

@@ -8,7 +8,7 @@ import { sha256 } from "./fsx.js";
 import { readManifest } from "./manifest.js";
 
 /** A pack file that every scenario below leans on. */
-const TRACKED = "rules/40-workflow.md";
+const TRACKED = "skills/review-changes/SKILL.md";
 
 async function scratch(): Promise<string> {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "agentkit-test-"));

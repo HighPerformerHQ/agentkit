@@ -9,7 +9,6 @@ import {
   type LoadOptions,
   type McpFile,
   type PackResolution,
-  type Rule,
   type Skill,
   type Vendor,
   ALL_VENDORS,
@@ -78,11 +77,7 @@ export async function loadCanonical(
     packPlan,
     skills: await readSkills(agentsDir),
     commands: await readCommands(agentsDir),
-    rules: await readRules(agentsDir),
     mcp,
-    foreignBlocks: extractForeignBlocks(
-      await readTextOrNull(path.join(root, "AGENTS.md")),
-    ),
   };
 }
 
@@ -233,31 +228,4 @@ async function readCommands(agentsDir: string): Promise<Command[]> {
   return commands;
 }
 
-async function readRules(agentsDir: string): Promise<Rule[]> {
-  const files = await glob("*.md", path.join(agentsDir, "rules"));
-  const rules: Rule[] = [];
-  for (const file of files) {
-    const { frontmatter, body } = parseFrontmatter(await readText(file));
-    const name = path.basename(file, ".md");
-    rules.push({
-      name,
-      path: file,
-      content: body.trim(),
-      order: Number.parseInt(frontmatter.order ?? "100", 10),
-      title: frontmatter.title ?? name.replace(/[-_]/g, " "),
-    });
-  }
-  return rules.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
-}
 
-/**
- * Pull `<!-- BEGIN:name -->...<!-- END:name -->` blocks out of an existing
- * AGENTS.md so a regenerated file keeps them. Next.js writes one of these and
- * re-adds it on every `next dev`; without this, sync and Next would overwrite
- * each other forever.
- */
-export function extractForeignBlocks(existing: string | null): string[] {
-  if (existing === null) return [];
-  const pattern = /<!--\s*BEGIN:([\w-]+)\s*-->[\s\S]*?<!--\s*END:\1\s*-->/g;
-  return [...existing.matchAll(pattern)].map((match) => match[0]);
-}
