@@ -1,6 +1,6 @@
 ---
 title: Git and pull requests
-order: 30
+order: 50
 ---
 - Branch from `main` as `<type>/<short-slug>`, where type is one of
   `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.

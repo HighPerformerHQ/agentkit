@@ -7,7 +7,7 @@ import { loadCanonical, packageRoot } from "./canonical.js";
 import { sha256 } from "./fsx.js";
 import { readManifest } from "./manifest.js";
 /** A pack file that every scenario below leans on. */
-const TRACKED = "rules/10-workflow.md";
+const TRACKED = "rules/40-workflow.md";
 async function scratch() {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "agentkit-test-"));
     await fs.mkdir(path.join(root, ".agents"), { recursive: true });

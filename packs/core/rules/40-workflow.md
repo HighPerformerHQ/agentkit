@@ -1,6 +1,6 @@
 ---
 title: How to work in this repo
-order: 10
+order: 40
 ---
 - Read before writing. Locate the existing pattern and follow it rather than
   introducing a second way of doing the same thing.

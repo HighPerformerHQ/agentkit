@@ -80,7 +80,12 @@ packs in the `agentkit` repo.
 - **Every project?** Open a PR against `agentkit` adding it to `packs/core/`.
   Every repo receives it on its next `sync`.
 
-**Do not edit a pack-seeded file to add project content.** agentkit tracks what
+The one exception is `.agents/rules/05-project.md`. It arrives as a set of
+placeholders describing your project and is meant to be filled in — it becomes
+locally-owned the moment you do, which is the intent. It is the first thing every
+agent reads, so it is worth ten minutes.
+
+**Otherwise, do not edit a pack-seeded file to add project content.** agentkit tracks what
 it wrote in `.agents/agentkit-manifest.json` and updates only the pack files you
 have not touched. Editing one keeps your change but forfeits every future
 improvement to that file; a separate file keeps both. If a pack file you edited

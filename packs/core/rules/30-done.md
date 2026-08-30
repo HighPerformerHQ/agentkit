@@ -1,6 +1,6 @@
 ---
 title: Definition of done
-order: 20
+order: 30
 ---
 A change is done when **all** of these hold:
 

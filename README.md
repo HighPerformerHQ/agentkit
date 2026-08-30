@@ -74,8 +74,19 @@ To change what an agent knows, edit `.agents/` and re-run `sync`.
 
 | Pack | Contents |
 |---|---|
-| `core` | Workflow, definition of done, git/PR conventions, secrets handling. Skills: `review-changes`, `debug-failing-test`. Commands: `/verify`, `/db-reset`. |
-| `nextjs` | Next.js architecture rules. Skills: `add-ui-component` (shadcn + Magic UI registries), `write-migration` (Drizzle). |
+| `core` | A project-description placeholder, definition of done, workflow, git/PR conventions, secrets handling. Skills: `review-changes`, `debug-failing-test`. Commands: `/verify`, `/db-reset`. |
+| `nextjs` | Architecture and where-code-goes rules. Skills: `add-ui-component` (shadcn + Magic UI registries), `write-migration` (Drizzle). |
+
+`core` ships **`rules/05-project.md`, which is meant to be edited.** It renders
+as the first section of `AGENTS.md` and holds nothing but placeholders — what the
+product does, the domain nouns, external systems, constraints the code does not
+show. Filling it in marks it locally-owned and `sync` stops updating it, which
+is exactly right: it is the one rule that is yours by definition.
+
+Rules are ordered by their `order:` frontmatter, lowest first. The numbering
+leaves gaps so a project can slot its own rules between the shipped ones — the
+Next.js starter puts its command table at `order: 10`, between the project
+description and the architecture section.
 
 ### How pack files are kept up to date
 

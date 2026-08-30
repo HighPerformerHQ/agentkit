@@ -12,25 +12,12 @@ export function renderAgentsMd(canonical: Canonical): string {
 
   out.push(`<!-- ${GENERATED_NOTICE} -->`);
   out.push("");
-
-  // Kept verbatim and first, which is where the tools that write them expect
-  // them to be. agentkit never edits their contents.
-  for (const block of foreignBlocks) {
-    out.push(block);
-    out.push("");
-  }
-
   out.push(`# ${name}`);
   out.push("");
   if (config.project?.description) {
     out.push(config.project.description);
     out.push("");
   }
-  out.push(
-    "This file is the shared instruction set for every coding agent working in this repo.",
-    "It is read natively by OpenAI Codex and OpenCode, and imported by `CLAUDE.md` for Claude Code.",
-  );
-  out.push("");
 
   for (const rule of rules) {
     out.push(`## ${rule.title}`);
@@ -58,6 +45,15 @@ export function renderAgentsMd(canonical: Canonical): string {
     for (const command of commands) {
       out.push(`- **/${command.name}** - ${command.description}`);
     }
+    out.push("");
+  }
+
+  // Foreign blocks go last: the first screen belongs to this project, not to a
+  // dependency's notice. Verified safe - Next.js's `upsertAgentRulesBlock`
+  // splices on its markers (`before + block + after`), so it rewrites the block
+  // wherever it sits rather than hoisting it back to the top.
+  for (const block of foreignBlocks) {
+    out.push(block);
     out.push("");
   }
 
