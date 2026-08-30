@@ -88,6 +88,11 @@ want is a normal, supported thing to do — `sync` will not put it back.
 This fails the build if someone hand-edited a generated file or forgot to
 commit the result of a sync.
 
+Because this repo is private, that one-liner only works where git is already
+authenticated — fine on a developer's machine, not in CI. A workflow in another
+repo needs a token with read access here; see the `agent-config` job in
+`nextjs-starter/.github/workflows/ci.yml` for a working example.
+
 ## Adding your own content
 
 Drop a file into the canonical tree and re-run `sync`:
