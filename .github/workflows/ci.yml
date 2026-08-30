@@ -22,6 +22,15 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
 
+      # dist/ is committed so `npx github:...` needs no build step at install
+      # time. Fail if someone changed src without rebuilding.
+      - name: Committed dist is up to date
+        run: |
+          if ! git diff --exit-code -- dist; then
+            echo "::error::dist/ is stale - run 'pnpm build' and commit the result."
+            exit 1
+          fi
+
       # Prove the CLI still produces a working setup end to end.
       - name: Smoke test sync + check
         run: |
