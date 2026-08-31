@@ -79,12 +79,31 @@ yours alone.
   `npx agentkit sync`. No pack and no registration needed.
 - **A skill or command for every project?** Open a PR against `agentkit` adding
   it to `packs/core/`. Every repo receives it on its next `sync`.
+- **Something specific to one feature?** That is a spec, not a rule — see below.
 
 **Do not edit a pack-seeded file to add project content.** agentkit tracks what
 it wrote in `.agents/agentkit-manifest.json` and updates only the pack files you
 have not touched. Editing one keeps your change but forfeits every future
 improvement to that file. If a pack file you edited changes upstream, `sync`
 reports a `conflict` and leaves your version alone.
+
+## Writing down what a feature does
+
+`AGENTS.md` describes the project. `docs/specs/` describes its features — one
+file each, covering what it does, why it works that way, and what was decided
+against. That last part is the point: it is the only thing neither the code nor
+the commit history can tell the next person, and it is what stops a rejected
+design being proposed again six months later.
+
+The loop, which the `feature-specs` skill will prompt you and your agent through:
+
+1. Before changing a feature, read its spec. `docs/specs/README.md` is the index.
+2. After shipping, update the spec in the same change — a spec that lags the
+   code is worse than none, because it is trusted and wrong.
+3. For a new feature, `/spec <name>` scaffolds one from the template.
+
+Specs are yours: agentkit ships the skill and the template and never touches
+`docs/`.
 
 Never hand-edit `CLAUDE.md`, `opencode.json`, `.codex/`, `.mcp.json`, or
 `.claude/` — they are generated, carry a `DO NOT EDIT` header, and CI will fail

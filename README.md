@@ -87,7 +87,7 @@ edit `.agents/` and re-run `sync`.
 
 | Pack | Contents |
 |---|---|
-| `core` | Skills: `review-changes`, `debug-failing-test`. Commands: `/verify`, `/db-reset`. |
+| `core` | Skills: `review-changes`, `debug-failing-test`, `feature-specs`. Commands: `/verify`, `/db-reset`, `/spec`. |
 | `nextjs` | Skills: `add-ui-component` (shadcn + Magic UI registries), `write-migration` (Drizzle). |
 
 Packs ship **skills, commands and MCP servers** — the things a vendor needs
@@ -114,6 +114,36 @@ in a skill of your own**, rather than editing a pack skill, or you trade away
 every future improvement to it for one local edit.
 
 Commit the manifest. It is what every teammate's sync reads.
+
+## Feature specs
+
+`AGENTS.md` says what a project *is*. It cannot say why each feature behaves the
+way it does, or which alternatives were rejected — that grows with the product
+and would swamp a file read on every run.
+
+So the `core` pack ships a convention: one spec per feature in **`docs/specs/`**,
+indexed by `docs/specs/README.md`. The `feature-specs` skill tells an agent to
+read the relevant spec before changing behaviour and to update it afterwards;
+`/spec <feature>` scaffolds one from the template that ships beside the skill.
+
+**agentkit never writes a spec, an index, or the directory.** Same rule as
+`AGENTS.md`: the mechanism is shared, the content is the project's. CI asserts
+that `sync` creates no `docs/`.
+
+Repos created from `nextjs-starter` already point at this. In any other repo,
+add three lines to `AGENTS.md` — nothing loads `docs/specs/` automatically:
+
+```markdown
+## Feature specs
+
+`docs/specs/` holds one spec per feature: what it does, why it works that way,
+and what was decided against. `docs/specs/README.md` is the index — read the row
+you need before changing a feature, and update the spec in the same change.
+```
+
+Keep the index short and the specs shorter. The index is read on every run; an
+individual spec is read on demand, and one that runs past ~60 lines is one
+nobody loads.
 
 ## Keeping it honest in CI
 
@@ -146,9 +176,10 @@ Drop a file into the canonical tree and re-run `sync`:
   `description:` frontmatter. The description is what an agent uses to decide
   whether to load it, so make it say *when to use this*, not just what it is.
   Skills need no pack and no registration: every skill in `.agents/skills/` is
-  indexed into `AGENTS.md`, mirrored to `.claude/skills/`, and read natively by
-  Codex and OpenCode. A skill that matters to one project belongs in that
-  project's repo.
+  mirrored to `.claude/skills/` and read natively by Codex and OpenCode. A skill
+  that matters to one project belongs in that project's repo. Files sitting
+  beside a `SKILL.md` travel with it, so a skill can ship its own template or
+  checklist.
 - **A command** — `.agents/commands/my-command.md` with `description:`
   frontmatter.
 - **An MCP server** — add an entry to `.agents/mcp.json`.

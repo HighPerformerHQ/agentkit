@@ -42,9 +42,18 @@ jobs:
           test -f /tmp/smoke/.codex/config.toml
           test -f /tmp/smoke/.claude/skills/review-changes/SKILL.md
           test -f /tmp/smoke/.agents/agentkit-manifest.json
+          # A skill's supporting files must be seeded and mirrored, not just its SKILL.md.
+          test -f /tmp/smoke/.agents/skills/feature-specs/TEMPLATE.md
+          test -f /tmp/smoke/.claude/skills/feature-specs/TEMPLATE.md
           # AGENTS.md is the project's own file - sync must never create it.
           if [ -e /tmp/smoke/AGENTS.md ]; then
             echo "::error::sync created AGENTS.md; it belongs to the project."
+            exit 1
+          fi
+          # Same rule for feature specs: agentkit ships the skill and the
+          # template, never a spec, an index, or the directory holding them.
+          if [ -e /tmp/smoke/docs ]; then
+            echo "::error::sync created docs/; feature specs belong to the project."
             exit 1
           fi
 
