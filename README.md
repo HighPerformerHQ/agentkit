@@ -79,6 +79,14 @@ AGENTS.md                                                       yours, untouched
 Everything else in that second block is generated and gets overwritten on every
 sync; each such file carries a `DO NOT EDIT` header.
 
+Generated means generated in both directions: delete a command from `.agents/`
+and `sync` removes it from `.claude/commands/` and `.codex/prompts/` too, and
+switching a vendor off in `agentkit.config.json` takes its files with it. The one
+thing `sync` will not delete is a file it never wrote. Leave your own skill in
+`.claude/skills/` and it stays there, named in the sync output - though `check`
+will fail until you move it to `.agents/skills/`, where all three vendors get
+it, or delete it.
+
 To change what an agent knows on every run, edit `AGENTS.md` — no sync needed,
 all three vendors read it directly. To change what skills or MCP servers it has,
 edit `.agents/` and re-run `sync`.
@@ -107,6 +115,7 @@ itself:
 | Edited by you | Left alone. If the pack also moved, you get a `conflict` notice to merge by hand |
 | Deleted by you | Stays deleted. `sync --reseed` brings it back |
 | No longer shipped by any pack | Left alone, reported as `orphaned` |
+| Written by a newer agentkit than yours | Left alone, reported as `stale`. Update agentkit |
 
 So a pack file is yours the moment you touch it — and it stops receiving
 updates at that moment too. **Put project-specific guidance in `AGENTS.md`, or
@@ -158,6 +167,15 @@ is checking.
 Pending pack updates are *reported* here, not failed on. Packs install from
 `main`, so failing would break CI in every repo the moment this one advances;
 an available update is a queue of work, not a broken build.
+
+Two things do fail: a generated file that no longer matches its source (which
+now includes one left behind by a deleted command or a disabled vendor), and an
+agentkit older than the one that last wrote the repo. The second is worth
+pinning for - `npx github:HighPerformerHQ/agentkit#v0.2.0` in a repo's
+`agentkit:sync` and `agentkit:check` scripts turns a pack update into a bump PR
+somebody reviews, instead of an ambient change that lands on whoever syncs
+next. Tracking `main` still works; it just means every repo picks up pack
+changes in whatever order people happen to run `sync`.
 
 This repo is public, so that one-liner needs no token and no secret — it works
 the same on a developer's machine and in any repository's CI.

@@ -35,5 +35,5 @@ export function codexAdapter(canonical) {
             contents: `${command.body}\n`,
         });
     }
-    return { files, mirrors: [] };
+    return { files, mirrors: [], generatedDirs: [".codex/prompts"] };
 }

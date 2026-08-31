@@ -75,12 +75,77 @@ export async function writeText(p, contents) {
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, contents, "utf8");
 }
-/** Mirror `src` onto `dest`, replacing whatever was there. Used for vendor dirs. */
-export async function mirrorDir(src, dest) {
-    await fs.rm(dest, { recursive: true, force: true });
-    if (!(await isDir(src)))
-        return;
-    await fs.cp(src, dest, { recursive: true });
+/**
+ * Bring `dest` in line with `src`, removing only what agentkit put there.
+ *
+ * `previous` is the list agentkit wrote last time, from the manifest. A file
+ * on that list which the source has dropped is a leftover and goes; a file
+ * that is not on it belongs to whoever created it, and is reported instead -
+ * a mirror that empties the directory it points at takes a developer's own
+ * work with it, and gives no sign it did.
+ */
+export async function reconcileMirror(src, dest, previous = []) {
+    const written = await listFiles(src);
+    const existing = await listFiles(dest);
+    const wanted = new Set(written);
+    const mine = new Set(previous);
+    for (const relative of written) {
+        const to = path.join(dest, relative);
+        await fs.mkdir(path.dirname(to), { recursive: true });
+        await fs.copyFile(path.join(src, relative), to);
+    }
+    const removed = [];
+    const foreign = [];
+    for (const relative of existing) {
+        if (wanted.has(relative))
+            continue;
+        if (mine.has(relative)) {
+            await fs.rm(path.join(dest, relative), { force: true });
+            removed.push(relative);
+        }
+        else {
+            foreign.push(relative);
+        }
+    }
+    await pruneEmptyDirs(dest);
+    return { written, removed, foreign };
+}
+/**
+ * Walk up from a path just removed, dropping directories the removal emptied,
+ * and stopping at `root`. Turning a vendor off should leave no trace of it,
+ * and an empty `.codex/` reads as one.
+ */
+export async function removeEmptyParents(root, relative) {
+    let dir = path.dirname(path.resolve(root, relative));
+    const stop = path.resolve(root);
+    // The separator keeps a sibling like `<root>-backup` out of the loop.
+    const inside = (p) => p.startsWith(stop + path.sep);
+    while (inside(dir)) {
+        try {
+            await fs.rmdir(dir);
+        }
+        catch {
+            return; // Not empty, or already gone. Either way, stop climbing.
+        }
+        dir = path.dirname(dir);
+    }
+}
+/** Drop directories a removal emptied, so a deleted skill leaves no husk. */
+async function pruneEmptyDirs(dir) {
+    if (!(await isDir(dir)))
+        return false;
+    let empty = true;
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) {
+            empty = false;
+            continue;
+        }
+        if (!(await pruneEmptyDirs(path.join(dir, entry.name))))
+            empty = false;
+    }
+    if (empty)
+        await fs.rmdir(dir).catch(() => { });
+    return empty;
 }
 /** List files matching a glob, relative paths resolved against `cwd`. */
 export async function glob(pattern, cwd) {

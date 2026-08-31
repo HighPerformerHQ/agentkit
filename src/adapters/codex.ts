@@ -41,5 +41,5 @@ export function codexAdapter(canonical: Canonical): AdapterOutput {
     });
   }
 
-  return { files, mirrors: [] };
+  return { files, mirrors: [], generatedDirs: [".codex/prompts"] };
 }

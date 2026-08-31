@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { DEFAULT_CONFIG, ALL_VENDORS, } from "./types.js";
 import { glob, hashFile, isDir, parseFrontmatter, readText, readTextOrNull, writeText, } from "./fsx.js";
 import { listPackFiles, readManifest, resolvePackFile, writeManifest } from "./manifest.js";
+import { agentkitVersion } from "./version.js";
 /** Root of the installed agentkit package (where `packs/` lives). */
 export function packageRoot() {
     return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -31,7 +32,9 @@ export async function loadCanonical(root, options = {}) {
     const write = options.write !== false;
     const agentsDir = path.join(root, ".agents");
     const config = await loadConfig(agentsDir, write);
-    const packPlan = await reconcilePacks(agentsDir, config, options);
+    const version = await agentkitVersion(packageRoot());
+    const packPlan = await reconcilePacks(agentsDir, config, options, version);
+    const written = await readManifest(agentsDir);
     const mcpPath = path.join(agentsDir, "mcp.json");
     const rawMcp = await readTextOrNull(mcpPath);
     let mcp;
@@ -48,7 +51,10 @@ export async function loadCanonical(root, options = {}) {
         root,
         agentsDir,
         config,
+        version,
         packPlan,
+        mirrored: written.mirrored ?? {},
+        syncedWith: written.agentkit,
         skills: await readSkills(agentsDir),
         commands: await readCommands(agentsDir),
         mcp,
@@ -60,7 +66,7 @@ export async function loadCanonical(root, options = {}) {
  * (what the pack ships, what is on disk, what agentkit last wrote) and carries
  * out the verdict.
  */
-async function reconcilePacks(agentsDir, config, options) {
+async function reconcilePacks(agentsDir, config, options, version) {
     const write = options.write !== false;
     const manifest = await readManifest(agentsDir);
     // Later packs win a path collision, matching the order they are enabled in.
@@ -86,17 +92,17 @@ async function reconcilePacks(agentsDir, config, options) {
         const packHash = ship === undefined ? null : await hashFile(ship.source);
         const localHash = await hashFile(local);
         const pack = ship?.pack ?? entry?.pack ?? "unknown";
-        const action = resolvePackFile({ path: relative, pack, packHash, localHash, entry }, options.reseed === true);
+        const action = resolvePackFile({ path: relative, pack, packHash, localHash, entry, version }, options.reseed === true);
         plan.push({ path: relative, pack, action });
         if (!write)
             continue;
         if ((action === "seed" || action === "update") && ship && packHash) {
             await fs.mkdir(path.dirname(local), { recursive: true });
             await fs.copyFile(ship.source, local);
-            manifest.seeded[relative] = { pack, hash: packHash };
+            manifest.seeded[relative] = { pack, hash: packHash, agentkit: version };
         }
         else if (action === "adopt" && packHash) {
-            manifest.seeded[relative] = { pack, hash: packHash };
+            manifest.seeded[relative] = { pack, hash: packHash, agentkit: version };
         }
         else if (action === "tombstone" && entry) {
             manifest.seeded[relative] = { ...entry, removed: true };
@@ -104,8 +110,8 @@ async function reconcilePacks(agentsDir, config, options) {
         else if (action === "drop") {
             delete manifest.seeded[relative];
         }
-        // unmanaged / current / modified / conflict / orphaned / removed all leave
-        // both the file and its manifest entry exactly as they are.
+        // unmanaged / current / modified / conflict / orphaned / removed / stale
+        // all leave both the file and its manifest entry exactly as they are.
     }
     if (write)
         await writeManifest(agentsDir, manifest);

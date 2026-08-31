@@ -23,6 +23,7 @@ import {
   writeText,
 } from "./fsx.js";
 import { listPackFiles, readManifest, resolvePackFile, writeManifest } from "./manifest.js";
+import { agentkitVersion } from "./version.js";
 
 /** Root of the installed agentkit package (where `packs/` lives). */
 export function packageRoot(): string {
@@ -56,7 +57,9 @@ export async function loadCanonical(
   const write = options.write !== false;
   const agentsDir = path.join(root, ".agents");
   const config = await loadConfig(agentsDir, write);
-  const packPlan = await reconcilePacks(agentsDir, config, options);
+  const version = await agentkitVersion(packageRoot());
+  const packPlan = await reconcilePacks(agentsDir, config, options, version);
+  const written = await readManifest(agentsDir);
 
   const mcpPath = path.join(agentsDir, "mcp.json");
   const rawMcp = await readTextOrNull(mcpPath);
@@ -74,7 +77,10 @@ export async function loadCanonical(
     root,
     agentsDir,
     config,
+    version,
     packPlan,
+    mirrored: written.mirrored ?? {},
+    syncedWith: written.agentkit,
     skills: await readSkills(agentsDir),
     commands: await readCommands(agentsDir),
     mcp,
@@ -91,6 +97,7 @@ async function reconcilePacks(
   agentsDir: string,
   config: AgentkitConfig,
   options: LoadOptions,
+  version: string,
 ): Promise<PackResolution[]> {
   const write = options.write !== false;
   const manifest = await readManifest(agentsDir);
@@ -124,7 +131,7 @@ async function reconcilePacks(
     const pack = ship?.pack ?? entry?.pack ?? "unknown";
 
     const action = resolvePackFile(
-      { path: relative, pack, packHash, localHash, entry },
+      { path: relative, pack, packHash, localHash, entry, version },
       options.reseed === true,
     );
     plan.push({ path: relative, pack, action });
@@ -134,16 +141,16 @@ async function reconcilePacks(
     if ((action === "seed" || action === "update") && ship && packHash) {
       await fs.mkdir(path.dirname(local), { recursive: true });
       await fs.copyFile(ship.source, local);
-      manifest.seeded[relative] = { pack, hash: packHash };
+      manifest.seeded[relative] = { pack, hash: packHash, agentkit: version };
     } else if (action === "adopt" && packHash) {
-      manifest.seeded[relative] = { pack, hash: packHash };
+      manifest.seeded[relative] = { pack, hash: packHash, agentkit: version };
     } else if (action === "tombstone" && entry) {
       manifest.seeded[relative] = { ...entry, removed: true };
     } else if (action === "drop") {
       delete manifest.seeded[relative];
     }
-    // unmanaged / current / modified / conflict / orphaned / removed all leave
-    // both the file and its manifest entry exactly as they are.
+    // unmanaged / current / modified / conflict / orphaned / removed / stale
+    // all leave both the file and its manifest entry exactly as they are.
   }
 
   if (write) await writeManifest(agentsDir, manifest);

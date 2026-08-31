@@ -87,6 +87,12 @@ have not touched. Editing one keeps your change but forfeits every future
 improvement to that file. If a pack file you edited changes upstream, `sync`
 reports a `conflict` and leaves your version alone.
 
+**If `sync` says your agentkit is older than the repo's, update it rather than
+forcing past it.** The manifest records which version wrote each file, so an
+older build can tell that a difference is its own staleness and not a pack
+update. Overwriting anyway would undo whatever a teammate committed, and their
+next sync would undo yours.
+
 ## Writing down what a feature does
 
 `AGENTS.md` describes the project. `docs/specs/` describes its features — one

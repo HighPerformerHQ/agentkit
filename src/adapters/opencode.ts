@@ -51,5 +51,6 @@ export function opencodeAdapter(canonical: Canonical): AdapterOutput {
       },
     ],
     mirrors: [],
+    generatedDirs: [],
   };
 }

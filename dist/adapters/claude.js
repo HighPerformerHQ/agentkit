@@ -42,6 +42,9 @@ export function claudeAdapter(canonical) {
     return {
         files,
         mirrors: [{ from: path.join(agentsDir, "skills"), to: ".claude/skills" }],
+        // `.claude/` itself is not listed: settings, subagents and anything else a
+        // developer keeps there are not agentkit's to remove.
+        generatedDirs: [".claude/commands"],
     };
 }
 function renderClaudeCommand(description, body) {

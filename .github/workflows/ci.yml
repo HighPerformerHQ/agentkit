@@ -23,6 +23,32 @@ jobs:
       - run: pnpm build
       - run: pnpm test
 
+      # An older agentkit tells "the pack moved forward" from "I am behind"
+      # by comparing this package's version against the one recorded in a
+      # repo's manifest. That only works if the two move together.
+      - name: A pack change bumps the version
+        if: github.event_name == 'pull_request'
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          git fetch --no-tags --depth=1 origin "$base"
+
+          if git diff --quiet "$base" HEAD -- packs; then
+            echo "packs/ unchanged - nothing to check."
+            exit 0
+          fi
+
+          before=$(git show "$base:package.json" | node -pe "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+          after=$(node -pe "require('./package.json').version")
+
+          node --input-type=module -e "
+            const { compareVersions } = await import('./dist/lib/version.js');
+            if (compareVersions('$after', '$before') !== 1) {
+              console.error('::error::packs/ changed but the version did not go up ($before -> $after). Every repo that syncs compares this number to decide whether an update is real, so a pack change needs a new version.');
+              process.exit(1);
+            }
+            console.log('packs/ changed, version $before -> $after');
+          "
+
       # dist/ is committed so `npx github:...` needs no build step at install
       # time. Fail if someone changed src without rebuilding.
       - name: Committed dist is up to date
@@ -56,6 +82,60 @@ jobs:
             echo "::error::sync created docs/; feature specs belong to the project."
             exit 1
           fi
+
+      # Deleting a command must reach every vendor. While only OpenCode
+      # noticed, Claude Code and Codex kept offering a command that was gone.
+      - name: A deleted command leaves every vendor
+        run: |
+          rm /tmp/smoke/.agents/commands/db-reset.md
+          node "$GITHUB_WORKSPACE/dist/cli.js" sync --root /tmp/smoke
+          for leftover in .claude/commands/db-reset.md .codex/prompts/db-reset.md; do
+            if [ -e "/tmp/smoke/$leftover" ]; then
+              echo "::error::sync left $leftover behind after the command was deleted."
+              exit 1
+            fi
+          done
+          if grep -q db-reset /tmp/smoke/opencode.json; then
+            echo "::error::opencode.json still lists a deleted command."
+            exit 1
+          fi
+          node "$GITHUB_WORKSPACE/dist/cli.js" check --root /tmp/smoke
+          # Put the leftover back by hand: check must fail on it, or the
+          # pruning above is the only thing standing between the vendors.
+          echo stale > /tmp/smoke/.claude/commands/db-reset.md
+          if node "$GITHUB_WORKSPACE/dist/cli.js" check --root /tmp/smoke; then
+            echo "::error::check passed with a generated command the canonical tree has dropped."
+            exit 1
+          fi
+          rm /tmp/smoke/.claude/commands/db-reset.md
+
+      # The mirror clears out its own files and nobody else's.
+      - name: The skills mirror keeps what agentkit did not write
+        run: |
+          mkdir -p /tmp/smoke/.claude/skills/my-own-skill
+          echo mine > /tmp/smoke/.claude/skills/my-own-skill/SKILL.md
+          node "$GITHUB_WORKSPACE/dist/cli.js" sync --root /tmp/smoke
+          if [ ! -f /tmp/smoke/.claude/skills/my-own-skill/SKILL.md ]; then
+            echo "::error::the mirror deleted a file agentkit never wrote."
+            exit 1
+          fi
+          rm -rf /tmp/smoke/.claude/skills/my-own-skill
+
+      # Switching a vendor off has to take its config with it, or the repo
+      # keeps configuring an agent the team believes is disabled.
+      - name: Disabling a vendor removes its files
+        run: |
+          printf '{"packs":["core"],"vendors":["claude"]}\n' > /tmp/smoke/.agents/agentkit.config.json
+          node "$GITHUB_WORKSPACE/dist/cli.js" sync --root /tmp/smoke
+          for leftover in .codex opencode.json; do
+            if [ -e "/tmp/smoke/$leftover" ]; then
+              echo "::error::$leftover survived its vendor being disabled."
+              exit 1
+            fi
+          done
+          node "$GITHUB_WORKSPACE/dist/cli.js" check --root /tmp/smoke
+          printf '{"packs":["core"],"vendors":["claude","codex","opencode"]}\n' > /tmp/smoke/.agents/agentkit.config.json
+          node "$GITHUB_WORKSPACE/dist/cli.js" sync --root /tmp/smoke
 
       # A deleted pack file must stay deleted - the guarantee the manifest exists for.
       - name: Deleting a pack file sticks

@@ -4,4 +4,4 @@ export const DEFAULT_CONFIG = {
     packs: ["core"],
     vendors: ["claude", "codex", "opencode"],
 };
-export const EMPTY_OUTPUT = { files: [], mirrors: [] };
+export const EMPTY_OUTPUT = { files: [], mirrors: [], generatedDirs: [] };

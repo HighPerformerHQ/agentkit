@@ -44,5 +44,6 @@ export function opencodeAdapter(canonical) {
             },
         ],
         mirrors: [],
+        generatedDirs: [],
     };
 }

@@ -1,8 +1,11 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { loadCanonical } from "../lib/canonical.js";
-import { planOutput } from "../adapters/index.js";
-import { listFiles, readTextOrNull } from "../lib/fsx.js";
+import { disabledVendors, planOutput, vendorFootprint } from "../adapters/index.js";
+import { exists, listFiles, readTextOrNull } from "../lib/fsx.js";
+import { isStale } from "../lib/manifest.js";
+import { isOlderThan } from "../lib/version.js";
+import type { Canonical, PackResolution } from "../lib/types.js";
 
 /**
  * Re-derive every generated file and compare it to the working tree. Exits
@@ -12,7 +15,7 @@ import { listFiles, readTextOrNull } from "../lib/fsx.js";
  */
 export async function check(root: string): Promise<number> {
   const canonical = await loadCanonical(root, { write: false });
-  const { files, mirrors } = planOutput(canonical);
+  const { files, mirrors, generatedDirs } = planOutput(canonical);
   const stale: string[] = [];
 
   for (const file of files) {
@@ -25,7 +28,40 @@ export async function check(root: string): Promise<number> {
     stale.push(...(await diffTree(mirror.from, path.join(root, mirror.to), mirror.to)));
   }
 
+  // A generated directory holds exactly what this run would write. Anything
+  // else is a command that was renamed or deleted and never cleaned up, which
+  // leaves Claude Code and Codex offering something OpenCode has dropped.
+  const wanted = new Set(files.map((file) => file.path));
+  for (const dir of new Set(generatedDirs)) {
+    for (const relative of await listFiles(path.join(root, dir))) {
+      const owned = path.join(dir, relative);
+      if (!wanted.has(owned)) stale.push(`${owned} (no longer generated)`);
+    }
+  }
+
+  stale.push(...(await leftoverVendorFiles(canonical)));
+
   reportPendingPackWork(canonical.packPlan);
+
+  // Being behind is reported ahead of any drift, because a build that cannot
+  // see as far as the one that wrote these files cannot judge them either:
+  // every "out of date" below would just be this agentkit's own age.
+  const stalePacks = canonical.packPlan.filter((entry) => isStale(entry.action));
+  const behind = isOlderThan(canonical.version, canonical.syncedWith);
+  if (stalePacks.length > 0 || (behind && stale.length > 0)) {
+    console.error(
+      `agentkit check: this agentkit (${canonical.version}) is OLDER than the one ` +
+        `that wrote this repo's agent config` +
+        `${canonical.syncedWith === undefined ? "" : ` (${canonical.syncedWith})`}`,
+    );
+    for (const entry of stalePacks) console.error(`  .agents/${entry.path}`);
+    if (behind) for (const entry of stale) console.error(`  ${entry}`);
+    console.error(
+      "\nThis build cannot judge files a newer agentkit wrote. Update agentkit,\n" +
+        "or raise the pinned version this repo installs, and run the check again.",
+    );
+    return 1;
+  }
 
   if (stale.length === 0) {
     console.log("agentkit check: generated files are up to date");
@@ -38,12 +74,38 @@ export async function check(root: string): Promise<number> {
   return 1;
 }
 
+/** Files still on disk for a vendor the repo no longer enables. */
+async function leftoverVendorFiles(canonical: Canonical): Promise<string[]> {
+  const problems: string[] = [];
+
+  for (const vendor of disabledVendors(canonical)) {
+    const { files, dirs, mirrors } = vendorFootprint(vendor, canonical);
+
+    for (const relative of [...files, ...dirs]) {
+      if (await exists(path.join(canonical.root, relative))) {
+        problems.push(`${relative} (${vendor} is not an enabled vendor)`);
+      }
+    }
+
+    // A mirror may legitimately still hold files agentkit never wrote, so
+    // only the ones it did are drift - and the manifest is the list of those.
+    for (const dest of mirrors) {
+      for (const relative of canonical.mirrored[dest] ?? []) {
+        if (await exists(path.join(canonical.root, dest, relative))) {
+          problems.push(`${dest}/${relative} (${vendor} is not an enabled vendor)`);
+        }
+      }
+    }
+  }
+  return problems;
+}
+
 /**
  * Pending pack work is reported but never fails the check. Packs are installed
  * from `main`, so failing here would break CI in every repo the moment agentkit
  * advances - a queue of work, not a broken build.
  */
-function reportPendingPackWork(plan: { path: string; action: string }[]): void {
+function reportPendingPackWork(plan: PackResolution[]): void {
   const pending = plan.filter(
     (entry) => entry.action === "seed" || entry.action === "update",
   );

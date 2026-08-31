@@ -1,6 +1,6 @@
 {
   "name": "agentkit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vendor-agnostic agent configuration toolkit. One canonical .agents/ tree, generated adapters for Claude Code, OpenAI Codex and OpenCode.",
   "type": "module",
   "bin": {
